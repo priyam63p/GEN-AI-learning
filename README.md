@@ -1,1 +1,1 @@
-# Strike-GEN-AI
+# GEN-AI
