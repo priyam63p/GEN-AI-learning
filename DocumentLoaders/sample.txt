@@ -1,0 +1,17 @@
+# Sample Text File
+# Created for easy copy-pasting
+
+This is a sample text file containing placeholder data, templates, or code snippets for your convenience.
+
+## Section 1: Overview
+- Item A: Quick start guide
+- Item B: Standard configuration parameters
+- Item C: Useful templates and examples
+
+## Section 2: Code / Configuration Template
+```json
+{
+  "status": "success",
+  "code": 200,
+  "message": "Sample configuration loaded successfully."
+}
