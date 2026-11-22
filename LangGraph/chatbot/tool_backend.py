@@ -54,6 +54,8 @@ def calculator(first_num: float, second_num: float, operation: str) -> dict:
 
 
 
+
+
 @tool
 def get_stock_price(symbol: str) -> dict:
     """

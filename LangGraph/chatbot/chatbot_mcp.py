@@ -1,0 +1,94 @@
+from langgraph.graph import StateGraph, START, END
+from typing import TypedDict, Annotated
+from langchain_core.messages import BaseMessage, HumanMessage
+from langchain_google_genai import ChatGoogleGenerativeAI
+from langgraph.checkpoint.sqlite import SqliteSaver
+from langgraph.graph.message import add_messages
+from langgraph.prebuilt import ToolNode, tools_condition
+from langchain_core.tools import tool
+from dotenv import load_dotenv
+from langchain_mcp_adapters.client import MultiServerMCPClient
+import sqlite3
+import requests
+import os
+import asyncio
+
+
+load_dotenv()
+llm = ChatGoogleGenerativeAI(model="gemini-3.8-flash")
+
+
+client = MultiServerMCPClient({
+    "arith": {
+        "transport": "stdio",
+        "command": "python3",
+        "args": ["/Users/PRIYAM PATRA/OneDrive/Desktop/mcp-math-server/main.py"],
+    },
+})
+
+
+@tool
+def calculator(first_num: float, second_num: float, operation: str) -> dict:
+    """
+    Perform a basic arithmetic operation on two numbers.
+    Supported operations: add, sub, mul, div
+    """
+    try:
+        if operation == "add":
+            result = first_num + second_num
+        elif operation == "sub":
+            result = first_num - second_num
+        elif operation == "mul":
+            result = first_num * second_num
+        elif operation == "div":
+            if second_num == 0:
+                return {"error": "Division by zero is not allowed"}
+            result = first_num / second_num
+        else:
+            return {"error": f"Unsupported operation '{operation}'"}
+
+        return {"first_num": first_num, "second_num": second_num, "operation": operation, "result": result}
+    except Exception as e:
+        return {"error": str(e)}
+
+
+
+
+
+
+class ChatState(TypedDict):
+    messages: Annotated[list[BaseMessage], add_messages]
+
+
+async def build_graph():
+    tools=await client.get_tools()
+    print(tools)
+    llm_with_tools=llm.bind_tools(tools)
+
+    async def chat_node(state: ChatState):
+        """LLM node that may answer or request a tool call."""
+        messages = state["messages"]
+        response = await llm_with_tools.invoke(messages)
+        return {"messages": [response]}
+    tool_node = ToolNode(tools)
+    graph = StateGraph(ChatState)
+    graph.add_node("chat_node", chat_node)
+    graph.add_node("tools", tool_node)
+
+    graph.add_edge(START, "chat_node")
+
+    graph.add_conditional_edges("chat_node", tools_condition)
+    graph.add_edge('tools', 'chat_node')
+
+    chatbot = graph.compile()
+
+    return chatbot
+
+
+async def main():
+    chatbot = build_graph()
+    result = chatbot.ainvoke({"messages": [HumanMessage(content="")]})
+    print(result['messages'][-1].content)
+
+if __name__ == '__main__':
+    asyncio.run(main())
