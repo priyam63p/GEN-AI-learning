@@ -1,0 +1,8 @@
+langchain-community
+ddgs
+langchain-google-genai
+langgraph
+langgraph-checkpoint-sqlite
+python-dotenv
+requests
+streamlit
